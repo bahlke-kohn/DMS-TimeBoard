@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Frame iFrame</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body {
+            position: relative;
+        }
+
+        #dynamicFrame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            z-index: 999999;
+            object-fit: contain;
+            background: #ffffff; /* Optional: Fügt weißen Hintergrund für Bilder hinzu, die den Bildschirm nicht ausfüllen */
+        }
+
+        #debugBanner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.64);
+            color: #fff;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 9999999;
+            max-height: 350px;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            transform: translateY(100%);
+        }
+
+        #debugBanner.active {
+            transform: translateY(0);
+        }
+
+        #debugBanner pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        .debug-time {
+            color: #4CAF50;
+        }
+
+        .debug-url {
+            color: #2196F3;
+        }
+
+        .image-mode {
+            object-fit: contain;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="dynamicFrame" allowfullscreen="true" frameborder="0"></iframe>
+    <div id="debugBanner">
+        <pre id="debugContent"></pre>
+    </div>
+    <script>
+
+        
+
+        const config = {
+            showDebugInfo: true, // HIER KANN DER DEBUG MODE EIN UND AUS GESTELLT WERDEN
+            dailySchedules: {
+
+                // Montag
+                1: [
+                    { from: "01:00", to: "05:00", url: "test.jpg" },
+                    { from: "05:01", to: "15:00", url: "departure.html" },
+                    { from: "15:01", to: "23:59", url: "depot.html" }
+                ],
+                // Dienstag
+                2: [
+                    { from: "01:00", to: "05:00", url: "test.jpg" },
+                    { from: "05:01", to: "15:00", url: "departure.html" },
+                    { from: "15:01", to: "23:59", url: "depot.html" }
+                ],
+                // Mittwoch
+                3: [
+                    { from: "01:00", to: "05:00", url: "test.jpg" },
+                    { from: "05:01", to: "15:00", url: "departure.html" },
+                    { from: "15:01", to: "23:59", url: "depot.html" }
+                ],
+                // Donnerstag
+                4: [
+                    { from: "01:00", to: "05:00", url: "test.jpg" },
+                    { from: "05:01", to: "15:00", url: "departure.html" },
+                    { from: "15:01", to: "23:59", url: "depot.html" }
+                ],
+                // Freitag
+                5: [
+                    { from: "01:00", to: "05:00", url: "test.jpg" },
+                    { from: "05:01", to: "15:00", url: "departure.html" },
+                    { from: "15:01", to: "23:59", url: "depot.html" }
+                ],
+                // Samstag
+                6: [
+                    { from: "01:00", to: "05:00", url: "test.jpg" },
+                    { from: "05:01", to: "15:00", url: "departure.html" },
+                    { from: "15:01", to: "23:59", url: "depot.html" }
+                ],
+                // Sonntag
+                0: [
+                    { from: "01:00", to: "05:00", url: "test.jpg" },
+                    { from: "05:01", to: "15:00", url: "departure.html" },
+                    { from: "15:01", to: "23:59", url: "depot.html" }
+                ]
+            },
+            defaultUrl: "fallback.html" // HIER KANN DIE FALLBACK URL GESTELLT WERDEN
+        };
+
+        function updateDebugBanner(currentTime, currentDay, activeUrl, scheduleInfo) {
+            const days = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+            const debugContent = document.getElementById('debugContent');
+            
+            // Berechne Zeit bis zum nächsten Aktualisieren
+            const now = new Date();
+            const msUntilRefresh = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+            
+            const debugInfo = `Time: <span class="debug-time">${currentTime}</span> | Day: <span class="debug-time">${days[currentDay]}</span>
+Next Refresh: <span class="debug-time">${msUntilRefresh}ms</span>
+Current URL: <span class="debug-url">${activeUrl}</span>
+Schedule for ${days[currentDay]}:
+${JSON.stringify(scheduleInfo, null, 2)}`;
+            
+            debugContent.innerHTML = debugInfo;
+            
+
+            if (config.showDebugInfo) {
+                setTimeout(() => updateDebugBanner(currentTime, currentDay, activeUrl, scheduleInfo), 100);
+            }
+        }
+
+        function getCurrentUrl() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentDay = now.getDay();
+            const currentTime = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+
+            const daySchedule = config.dailySchedules[currentDay];
+
+            for (const timeSlot of daySchedule) {
+                const { from, to, url } = timeSlot;
+
+                if (to < from) {
+                    if (currentTime >= from || currentTime <= to) {
+                        updateDebugBanner(currentTime, currentDay, url, daySchedule);
+                        return url;
+                    }
+                } else {
+                    if (currentTime >= from && currentTime <= to) {
+                        updateDebugBanner(currentTime, currentDay, url, daySchedule);
+                        return url;
+                    }
+                }
+            }
+
+            updateDebugBanner(currentTime, currentDay, config.defaultUrl, daySchedule);
+            return config.defaultUrl;
+        }
+
+        function updateIframeUrl() {
+            const url = getCurrentUrl();
+            const iframe = document.getElementById('dynamicFrame');
+            
+            // Prüfe ob URL ein Bild ist
+            const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            
+            if (isImage) {
+                // Wenn es ein Bild ist, konvertiere iframe zu img
+                const img = document.createElement('img');
+                img.src = url;
+                img.id = 'dynamicFrame';
+                img.className = 'image-mode';
+                iframe.parentNode.replaceChild(img, iframe);
+            } else {
+                // Wenn es kein Bild ist und wir ein img haben, konvertiere zurück zu iframe
+                const currentElement = document.getElementById('dynamicFrame');
+                if (currentElement.tagName === 'IMG') {
+                    const newIframe = document.createElement('iframe');
+                    newIframe.src = url;
+                    newIframe.id = 'dynamicFrame';
+                    newIframe.allowFullscreen = true;
+                    newIframe.frameBorder = "0";
+                    currentElement.parentNode.replaceChild(newIframe, currentElement);
+                } else {
+                    iframe.src = url;
+                }
+            }
+        }
+
+        function scheduleNextMinuteRefresh() {
+            const now = new Date();
+            const delay = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+            
+            // Plane Aktualisierungen synchron zu vollen Minuten
+            setTimeout(() => {
+                updateIframeUrl();
+                
+                // HIER KANN DIE REFRESH RATE GEÄNDERT WERDEN
+                setInterval(updateIframeUrl, 60000);
+            }, delay);
+        }
+
+    
+        updateIframeUrl();
+
+        // Plane Aktualisierungen synchron zu vollen Minuten
+        scheduleNextMinuteRefresh();
+
+
+        const debugBanner = document.getElementById('debugBanner');
+        const debugToggle = document.getElementById('debugToggle');
+        
+
+        if (config.showDebugInfo) {
+            debugBanner.classList.add('active');
+            debugToggle.style.display = 'block';
+        } else {
+            debugBanner.classList.remove('active');
+            debugToggle.style.display = 'none';
+        }
+
+        debugToggle.addEventListener('click', () => {
+            if (config.showDebugInfo) {
+                debugBanner.classList.toggle('active');
+                debugToggle.textContent = debugBanner.classList.contains('active') ? 'Hide Debug' : 'Debug Info';
+            }
+        });
+    </script>
+</body>
+</html>
+
